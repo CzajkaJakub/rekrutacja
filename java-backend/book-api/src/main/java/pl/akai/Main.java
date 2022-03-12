@@ -1,7 +1,10 @@
 package pl.akai;
 
-import org.json.JSONArray;
-import java.util.ArrayList;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
+
+import java.io.IOException;
+import java.util.*;
 
 public class Main {
     /*
@@ -29,78 +32,42 @@ public class Main {
        jednakże nic nie stoi na przeszkodzie użycia innej wersji jeśli chcesz
      */
 
-    private static final ArrayList<Author> authors = new ArrayList<>();
+    private static final Map<String, Author> authors = new HashMap<>();
 
     public static void main(String[] args) {
-
-
         try {
-            Connection connection = new Connection("https://akai-recruitment.herokuapp.com/book");
-            connection.makeConnection();
-            pareJsonObject(connection.getResponse());
-        }catch (Exception ignored){}
+            Connection connection = new Connection();
+            connection.makeConnection("https://akai-recruitment.herokuapp.com/book");
+            List<Book> bookList = connection.getBooksFromServer();
+            createBooksAndAuthors(bookList);
+        } catch (Exception ignored) {}
+
 
         // TODO TU wpisujemy ile najlepszych pisarzy mamy wypisac
-        int x = 9;
+        int x = 6;
         printBestsAuthors(x);
-        }
 
-    private static void pareJsonObject(String response) {
-        JSONArray array = new JSONArray(response);
-        for (int i = 0; i < array.length(); i++) {
-            String id = array.getJSONObject(i).getString("id");
-            String title = array.getJSONObject(i).getString("title");
-            String author = array.getJSONObject(i).getString("author");
-            Double rating = array.getJSONObject(i).getDouble("rating");
-            createBooksAndAuthors(id, title, author, rating);
+    }
+
+    private static void createBooksAndAuthors(List<Book> bookList) throws IOException {
+        ObjectMapper objectMapper = new ObjectMapper();
+        for (int i = 0; i < bookList.size(); i++) {
+            String jsonBook = objectMapper.writeValueAsString(bookList.get(i));
+            Book book = objectMapper.readValue(jsonBook, Book.class);
+            assignBookToAuthor(book);
         }
     }
 
-    private static void createBooksAndAuthors(String id, String title, String author, Double rating) {
-            // tworzenie nowej ksiazki
-            Book book = new Book(id, title, author, rating);
+    private static void assignBookToAuthor(Book book) {
+        authors.merge(book.getAuthor(), new Author(book.getAuthor(), book), (oldAuthor, newAutor) -> new Author(book.getAuthor(), oldAuthor.getBooks(), book));
+    }
 
-            //sprawdzenie czy w liscie znajduje sie juz autor jesli nie to stworz nowego jesli tak przypisz mu nowa ksiazke
-            int exist = 0;
-            for(Author x: authors){
-                if(x.getName().equals(author)){
-                    exist = 1;
-                    x.addBook(book);
-                    break;
-                }
-            }
-
-            if(exist == 0){
-                Author newAuthor = new Author(author);
-                newAuthor.addBook(book);
-                authors.add(newAuthor);
-            }
-        }
 
     private static void printBestsAuthors(int x) {
-        
-        double maxRate = 0;
-        Author bestAuthor = null;
-        ArrayList<Author> bestsAuthors = new ArrayList<>();
-        
-        for(int i = 0; i < x; i ++){
-
-            // wypisanie wszystkich autorow
-            for (Author author: authors) {
-                if(author.getRating() >= maxRate && !bestsAuthors.contains(author)){
-                    maxRate = author.getRating();
-                    bestAuthor = author;
-                }
-            }
-            bestsAuthors.add(bestAuthor);
-            maxRate = 0;
-            bestAuthor = null;
-        }
-
-        for (Author author: bestsAuthors) {
-            if(author != null){System.out.println(author);}
+        List<Author> allAuthors = new ArrayList<>(authors.values());
+        Collections.sort(allAuthors);
+        for (int i = 0; i < x; i++) {
+            System.out.println(allAuthors.get(i));
         }
     }
 }
-
-

@@ -1,6 +1,7 @@
 package pl.akai;
 
 import java.util.*;
+import java.util.stream.Collectors;
 
 
 public class Main {
@@ -24,6 +25,8 @@ public class Main {
             "Nie powinno sprawić żadnego problemu, bo Google jest dozwolony"
     };
 
+    private static Map<String, Integer> counter = new HashMap<>();
+
     public static void main(String[] args) {
         /* TODO Twoim zadaniem jest wypisanie na konsoli trzech najczęściej występujących słów
                 w tablicy 'sentences' wraz z ilością ich wystąpień..
@@ -35,49 +38,30 @@ public class Main {
         */
 
         Integer showAmountWords = 3;
-        HashMap<String, Integer> counter = getMyMap(sentences);
-        printMostCommonWords(counter, showAmountWords);
-    }
-
-    private static HashMap<String, Integer> getMyMap(String[] sentences) {
-        HashMap<String, Integer> counter = new HashMap<>();
-
-        for (String x: sentences) {
-            for (String y : x.split(" ")) {
-                String key = y.toLowerCase(Locale.ROOT);
-                if (counter.containsKey(key)) {
-                    counter.put(key, counter.get(key) + 1);
-                } else {
-                    counter.put(key, 1);
-                }
-            }
-        }
-        return counter;
+        getMyMap();
+        printMostCommonWords(showAmountWords);
     }
 
 
-    private static void printMostCommonWords(HashMap<String, Integer> counter, Integer showAmountWords) {
+    private static void printMostCommonWords(Integer showAmountWords) {
 
-        Set<String> words = counter.keySet();
+        counter = counter.entrySet().stream()
+                .sorted(Map.Entry.comparingByValue(Comparator.reverseOrder()))
+                .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue,
+                        (oldValue, newValue) -> oldValue, LinkedHashMap::new));
 
-        String maxWord = "";
-        Integer maxCount = 0;
 
-        for(int i = 0; i < showAmountWords; i++){
-            for(String word:words){
-                if(counter.get(word) > maxCount){
-                    maxWord = word;
-                    maxCount = counter.get(word);
-                }
-            }
-
-            System.out.println( i+1 + ". '" + maxWord + "' wystepuje " + maxCount);
-            counter.remove(maxWord);
-            words.remove(maxWord);
-            maxCount = 0;
-            maxWord = "";
-
+        Iterator<String> keys = counter.keySet().iterator();
+        for (int i = 0; i < showAmountWords; i++) {
+            String key = keys.next();
+            System.out.println(key + " wystepuje : " + counter.get(key));
         }
     }
 
+    private static void getMyMap() {
+        String[] words = Arrays.toString(sentences).replaceAll("[^A-Za-zżźćńółęąśŻŹĆĄŚĘŁÓŃ ]", "").toLowerCase().split(" ");
+        for (String x: words) {
+            counter.merge(x, 1, (oldValue, newValue) -> oldValue + 1);
+        }
+    }
 }

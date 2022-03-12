@@ -1,40 +1,23 @@
 package pl.akai;
 
-import java.io.BufferedReader;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
+
 import java.io.IOException;
-import java.io.InputStreamReader;
-import java.net.HttpURLConnection;
 import java.net.URL;
+import java.util.List;
 
 public class Connection {
 
-    private final String urlString;
-    private StringBuilder response;
-    private HttpURLConnection connection;
+    private URL url;
+    private ObjectMapper objectMapper;
 
-    public Connection(String url) {
-        this.urlString = url;
+    public void makeConnection(String urlString) throws IOException {
+        url = new URL(urlString);
+        objectMapper = new ObjectMapper();
     }
 
-    public void makeConnection() throws IOException {
-        URL url = new URL(urlString);
-        connection = (HttpURLConnection) url.openConnection();
-        connection.setRequestMethod("GET");
-        getResponseFromServer();
-    }
-
-
-    private void getResponseFromServer() throws IOException {
-        BufferedReader in = new BufferedReader(new InputStreamReader(connection.getInputStream()));
-        response = new StringBuilder();
-        String line;
-        while ((line = in.readLine()) != null) {
-            response.append(line);
-        }
-        in.close();
-    }
-
-    public String getResponse() {
-        return response.toString();
+    public List<Book> getBooksFromServer() throws IOException {
+        return objectMapper.readValue(url, new TypeReference<>(){});
     }
 }
